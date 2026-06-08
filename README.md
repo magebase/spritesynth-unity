@@ -1,53 +1,62 @@
-# SpriteSynth Unity SDK
+# SpriteSynth Unity Editor Extension
 
-[![openupm](https://img.shields.io/npm/v/com.magebase.spritesynth?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.magebase.spritesynth/)
+[![UPM](https://img.shields.io/badge/Unity-2022.3%2B-blue)](https://unity.com)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Generate pixel art game assets directly from the Unity Editor using the SpriteSynth AI API.
+Generate pixel art game assets directly inside the Unity Editor using the SpriteSynth AI API.
+
+![Generator Window](docs/screenshots/generator-window.png)
+
+## Features
+
+- **AI Generation** — text-to-pixel-art with configurable size, seed, and negative prompt
+- **Auto-Import** — generated PNGs are downloaded and imported as `Texture2D` assets into your project
+- **Generation History** — browse, preview, re-import, and delete past generations
+- **Environment Variable Support** — `SPIRESYNTH_API_KEY` env var fallback for CI/CD workflows
+- **UPM Package** — standard Unity Package Manager format
 
 ## Quick Start
 
-1. **Install the package** via UPM (Unity Package Manager) using the Git URL:
+1. **Install** the package via UPM:
    ```
    https://github.com/magebase/spritesynth-unity.git
    ```
 2. **Get an API key** from [spritesynth.com](https://spritesynth.com)
-3. **Open the generator window**: `Tools > SpriteSynth > Generator`
-4. Paste your API key, write a prompt, and click **Generate**
+3. Open **Tools > SpriteSynth > Generator**
+4. Paste your API key in the **Settings** tab and click **Save**
+5. Write a prompt and click **Generate**
 
-### Code Example
+## Usage
 
-```csharp
-using Magebase.Spritesynth;
-using UnityEngine;
+### Generator Window
 
-public class SpriteGenExample : MonoBehaviour
-{
-    async void Start()
-    {
-        var client = new SpritesynthClient("your-api-key");
+| Tab | Purpose |
+|-----|---------|
+| **Generate** | Enter prompt, image size, seed, negative prompt — click Generate. Progress bar shows status. |
+| **History** | Browse past generations. Click **Import** to bring a PNG into your project, **Select** to locate it in Project view, **Delete** to remove the history entry. |
+| **Settings** | Manage API key, base URL, test connection, clear history. |
 
-        var request = new CreateImageRequest
-        {
-            description = "a 16x16 pixel art knight with blue armor",
-            image_size = "128x128",
-            seed = 42
-        };
+### Import Pipeline
 
-        var response = await client.CreateImageAsync(request);
-        var result = await client.PollGenerationAsync(response.job_id);
+When a generation completes:
 
-        if (result.status == "completed")
-        {
-            byte[] png = await client.DownloadAssetAsync(result.asset.url);
-            // Create a texture, save to disk, etc.
-        }
-    }
-}
-```
+1. PNG is downloaded from the CDN
+2. Saved to `Assets/Spritesynth/Generations/{timestamp}/{prompt}.png`
+3. Asset database refreshes and imports the texture
+4. The new asset is selected in the Project view
+5. A success dialog is shown
 
-## API Reference
+### Environment Variable
 
-Full API documentation: [https://spritesynth.com/api-reference/v1](https://spritesynth.com/api-reference/v1)
+If the `SPIRESYNTH_API_KEY` environment variable is set, the Settings tab shows a **"Using env var"** badge and the API key field is optional.
+
+## API
+
+The extension communicates with `https://api.spritesynth.com/api`:
+
+- `POST /generations/image` — create a generation job
+- `GET /generations/{job_id}` — poll for completion
+- `GET {asset.url}` — download the resulting PNG
 
 ## License
 

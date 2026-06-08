@@ -1,90 +1,107 @@
 using System;
-using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace Magebase.Spritesynth
 {
-    [Serializable]
-    public class CreateImageRequest
-    {
-        public string description;
-        public string image_size = "128x128";
-        public int seed;
-        public string negative_prompt;
-        public string project_id;
-    }
-
-    [Serializable]
-    public class CreateImageResponse
-    {
-        public string job_id;
-        public string status;
-    }
-
-    [Serializable]
-    public class GenerationResult
-    {
-        public string id;
-        public string status;
-        public AssetInfo asset;
-        public int credits_cost;
-        public long duration_ms;
-    }
-
-    [Serializable]
-    public class AssetInfo
-    {
-        public string url;
-        public int width;
-        public int height;
-    }
-
     public class SpritesynthClient
     {
-        private readonly HttpClient _httpClient;
-        private string _apiKey;
-        private const string BaseUrl = "https://api.spritesynth.com/api";
+        private readonly string _apiKey;
+        private readonly string _baseUrl;
 
-        public SpritesynthClient(string apiKey)
+        public SpritesynthClient(string apiKey, string baseUrl = "https://api.spritesynth.com/api")
         {
-            _apiKey = apiKey;
-            _httpClient = new HttpClient();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
-            _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+            _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
+            _baseUrl = (baseUrl ?? "https://api.spritesynth.com/api").TrimEnd('/');
         }
 
         public async Task<CreateImageResponse> CreateImageAsync(CreateImageRequest request)
         {
-            var json = JsonUtility.ToJson(request);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{BaseUrl}/generations/image", content);
-            response.EnsureSuccessStatusCode();
-            var body = await response.Content.ReadAsStringAsync();
-            return JsonUtility.FromJson<CreateImageResponse>(body);
+            string json = JsonUtility.ToJson(request);
+            byte[] body = Encoding.UTF8.GetBytes(json);
+
+            using var web = new UnityWebRequest(_baseUrl + "/generations/image", "POST");
+            web.uploadHandler = new UploadHandlerRaw(body);
+            web.downloadHandler = new DownloadHandlerBuffer();
+            web.SetRequestHeader("Content-Type", "application/json");
+            web.SetRequestHeader("Authorization", $"Bearer {_apiKey}");
+            web.SetRequestHeader("Accept", "application/json");
+
+            await web.SendWebRequestAsync();
+
+            if (web.result != UnityWebRequest.Result.Success)
+            {
+                string detail = string.IsNullOrEmpty(web.downloadHandler.text)
+                    ? web.error
+                    : web.downloadHandler.text;
+                throw new Exception($"Create image failed ({web.responseCode}): {detail}");
+            }
+
+            return JsonUtility.FromJson<CreateImageResponse>(web.downloadHandler.text);
         }
 
-        public async Task<GenerationResult> PollGenerationAsync(string jobId, int maxRetries = 30, int delayMs = 1000)
+        public async Task<GenerationResult> PollGenerationAsync(string jobId, int maxRetries = 60, int delayMs = 2000)
         {
             for (int i = 0; i < maxRetries; i++)
             {
-                var response = await _httpClient.GetAsync($"{BaseUrl}/generations/{jobId}");
-                response.EnsureSuccessStatusCode();
-                var body = await response.Content.ReadAsStringAsync();
-                var result = JsonUtility.FromJson<GenerationResult>(body);
+                using var web = UnityWebRequest.Get(_baseUrl + "/generations/" + jobId);
+                web.SetRequestHeader("Authorization", $"Bearer {_apiKey}");
+                web.SetRequestHeader("Accept", "application/json");
+
+                await web.SendWebRequestAsync();
+
+                if (web.result != UnityWebRequest.Result.Success)
+                    throw new Exception($"Poll failed ({web.responseCode}): {web.error}");
+
+                GenerationResult result;
+                try
+                {
+                    result = JsonUtility.FromJson<GenerationResult>(web.downloadHandler.text);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Failed to parse poll response: {ex.Message}");
+                }
+
+                if (result == null)
+                    throw new Exception("Poll returned null result");
+
                 if (result.status == "completed" || result.status == "failed")
                     return result;
+
                 await Task.Delay(delayMs);
             }
-            throw new TimeoutException("Generation did not complete within the polling limit.");
+
+            throw new TimeoutException("Generation did not complete within polling limit.");
         }
 
         public async Task<byte[]> DownloadAssetAsync(string url)
         {
-            var response = await _httpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsByteArrayAsync();
+            if (string.IsNullOrEmpty(url))
+                throw new ArgumentNullException(nameof(url));
+
+            using var web = UnityWebRequest.Get(url);
+            web.downloadHandler = new DownloadHandlerBuffer();
+
+            await web.SendWebRequestAsync();
+
+            if (web.result != UnityWebRequest.Result.Success)
+                throw new Exception($"Download failed ({web.responseCode}): {web.error}");
+
+            return web.downloadHandler.data;
+        }
+    }
+
+    public static class UnityWebRequestExtensions
+    {
+        public static Task SendWebRequestAsync(this UnityWebRequest request)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            var operation = request.SendWebRequest();
+            operation.completed += _ => tcs.TrySetResult(true);
+            return tcs.Task;
         }
     }
 }

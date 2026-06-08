@@ -1,12 +1,20 @@
 {
   "name": "com.magebase.spritesynth",
   "version": "1.0.0",
-  "displayName": "SpriteSynth SDK",
-  "description": "Unity SDK for the spritesynth API — Generate pixel art game assets directly in the Unity Editor.",
+  "displayName": "SpriteSynth AI Generator",
+  "description": "Unity Editor extension for SpriteSynth AI API — generate pixel art game assets directly in the Editor.",
   "unity": "2022.3",
   "author": {
     "name": "magebase",
     "url": "https://spritesynth.com"
   },
-  "keywords": ["pixel-art", "ai", "generation", "spritesynth"]
+  "keywords": [
+    "pixel-art",
+    "ai",
+    "generation",
+    "spritesynth",
+    "editor",
+    "tool"
+  ],
+  "type": "tool"
 }
