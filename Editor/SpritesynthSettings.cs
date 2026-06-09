@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using UnityEditor;
 
 namespace Magebase.Spritesynth.Editor
@@ -39,6 +40,17 @@ namespace Magebase.Spritesynth.Editor
         {
             get => EditorPrefs.GetString(BaseUrlPref, DefaultBaseUrl);
             set => EditorPrefs.SetString(BaseUrlPref, value ?? DefaultBaseUrl);
+        }
+
+        public static async Task<int> FetchBalanceAsync()
+        {
+            string key = ApiKey;
+            if (string.IsNullOrEmpty(key))
+                throw new InvalidOperationException("API key is not set.");
+
+            var client = new SpritesynthClient(key, BaseUrl);
+            var balance = await client.GetAccountBalanceAsync();
+            return balance.credits_balance;
         }
 
         public static void ClearApiKey()

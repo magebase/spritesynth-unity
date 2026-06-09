@@ -2,7 +2,7 @@
   "name": "com.magebase.spritesynth",
   "version": "1.0.0",
   "displayName": "SpriteSynth AI Generator",
-  "description": "Unity Editor extension for SpriteSynth AI API — generate pixel art game assets directly in the Editor.",
+  "description": "Full-featured Unity Editor extension for the SpriteSynth AI API — generate pixel art, sprites, characters, objects, tilesets, and more directly inside the Editor. Covers the entire SpriteSynth REST API surface including AI generation, image operations, character/object/tileset manage ment, project organization, asset versioning, templates, API keys, and account management.",
   "unity": "2022.3",
   "author": {
     "name": "magebase",
@@ -13,6 +13,9 @@
     "ai",
     "generation",
     "spritesynth",
+    "sprites",
+    "characters",
+    "tilesets",
     "editor",
     "tool"
   ],

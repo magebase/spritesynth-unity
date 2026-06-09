@@ -5,14 +5,22 @@
 
 Generate pixel art game assets directly inside the Unity Editor using the SpriteSynth AI API.
 
-![Generator Window](docs/screenshots/generator-window.png)
-
 ## Features
 
-- **AI Generation** — text-to-pixel-art with configurable size, seed, and negative prompt
-- **Auto-Import** — generated PNGs are downloaded and imported as `Texture2D` assets into your project
+- **AI Generation** — text-to-pixel-art with style reference, UI elements, and preview modes
+- **Full API Coverage** — every SpriteSynth REST endpoint is exposed:
+  - **Generations** — create, poll, cancel, retry, variation, list with filters
+  - **Image Ops** — to-pixel, resize, remove background, inpaint, edit, rotate
+  - **Characters** — CRUD, states, spritesheets, export ZIP, duplicate, assign project
+  - **Objects** — CRUD, states, spritesheets, export ZIP, duplicate, assign project
+  - **Tilesets** — CRUD, tile listing, export ZIP, duplicate, assign project
+  - **Projects** — CRUD, duplicate, archive, unarchive
+  - **Assets** — CRUD, bulk destroy, move, download, version history
+  - **Templates** — CRUD, apply, duplicate
+  - **Account** — API key management, balance, key rotation/revocation
+- **Auto-Import** — generated PNGs are downloaded and imported as `Texture2D` assets
 - **Generation History** — browse, preview, re-import, and delete past generations
-- **Environment Variable Support** — `SPIRESYNTH_API_KEY` env var fallback for CI/CD workflows
+- **Environment Variable Support** — `SPIRESYNTH_API_KEY` env var fallback
 - **UPM Package** — standard Unity Package Manager format
 
 ## Quick Start
@@ -23,40 +31,45 @@ Generate pixel art game assets directly inside the Unity Editor using the Sprite
    ```
 2. **Get an API key** from [spritesynth.com](https://spritesynth.com)
 3. Open **Tools > SpriteSynth > Generator**
-4. Paste your API key in the **Settings** tab and click **Save**
+4. Paste your API key in the **Tools & Settings > Settings** tab and click **Save**
 5. Write a prompt and click **Generate**
 
-## Usage
+## Editor Window
 
-### Generator Window
+| Tab | Section | Purpose |
+|-----|---------|---------|
+| **Generate** | Create Image / Style Reference / UI Elements / Preview | Enter prompt, configure size/seed/negative prompt, generate and preview results |
+| **Manage** | Characters / Objects / Tilesets / Projects | Browse, create, edit, delete, duplicate, export assets. View character/object states |
+| **Tools & Settings** | Image Ops | To Pixel Art, Resize, Remove BG, Inpaint, Edit, Rotate |
+| **Tools & Settings** | History | Browse past generations, re-import, select in Project view, delete |
+| **Tools & Settings** | Settings | API key, base URL, test connection, account balance, clear history |
 
-| Tab | Purpose |
-|-----|---------|
-| **Generate** | Enter prompt, image size, seed, negative prompt — click Generate. Progress bar shows status. |
-| **History** | Browse past generations. Click **Import** to bring a PNG into your project, **Select** to locate it in Project view, **Delete** to remove the history entry. |
-| **Settings** | Manage API key, base URL, test connection, clear history. |
-
-### Import Pipeline
+## Import Pipeline
 
 When a generation completes:
-
 1. PNG is downloaded from the CDN
 2. Saved to `Assets/Spritesynth/Generations/{timestamp}/{prompt}.png`
-3. Asset database refreshes and imports the texture
+3. Asset database refreshes and imports the texture (Point filter, Sprite type)
 4. The new asset is selected in the Project view
 5. A success dialog is shown
 
-### Environment Variable
+## Environment Variable
 
 If the `SPIRESYNTH_API_KEY` environment variable is set, the Settings tab shows a **"Using env var"** badge and the API key field is optional.
 
-## API
+## API Coverage
 
-The extension communicates with `https://api.spritesynth.com/api`:
+The extension communicates with `https://api.spritesynth.com/api` and covers:
 
-- `POST /generations/image` — create a generation job
-- `GET /generations/{job_id}` — poll for completion
-- `GET {asset.url}` — download the resulting PNG
+- **10 generation endpoints** — image, style, UI, preview, list, get, status, cancel, retry, variation
+- **6 image operation endpoints** — to-pixel, resize, remove-bg, inpaint, edit, rotate
+- **13 character endpoints** — CRUD + states, spritesheets, export, duplicate, thumbnail, assign
+- **13 object endpoints** — CRUD + states, spritesheets, export, duplicate, thumbnail, assign
+- **10 tileset endpoints** — CRUD + tiles, export, duplicate, thumbnail, assign
+- **7 project endpoints** — CRUD + duplicate, archive, unarchive
+- **8 asset endpoints** — CRUD + bulk destroy, move, download, versions, restore
+- **7 template endpoints** — CRUD + apply, duplicate
+- **5 account endpoints** — list, create, delete, revoke, rotate API keys + balance
 
 ## License
 

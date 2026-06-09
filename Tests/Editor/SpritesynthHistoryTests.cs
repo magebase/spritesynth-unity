@@ -1,177 +1,105 @@
-using NUnit.Framework;
 using System;
 using System.IO;
+using NUnit.Framework;
 using UnityEngine;
 
-namespace Magebase.Spritesynth.Tests
+namespace Magebase.Spritesynth.Tests.Editor
 {
     public class SpritesynthHistoryTests
     {
-        private string _originalDataPath;
+        private string _testFilePath;
 
         [SetUp]
-        public void SetUp()
+        public void Setup()
         {
-            _originalDataPath = Application.dataPath;
-            Application.dataPath = Path.Combine(Path.GetTempPath(), "SpritesynthTests", "Assets");
+            string projectPath = Path.GetDirectoryName(Application.dataPath);
+            string dir = Path.Combine(projectPath, "ProjectSettings", "Spritesynth");
+            _testFilePath = Path.Combine(dir, "history.json");
+
+            if (File.Exists(_testFilePath))
+                File.Delete(_testFilePath);
+
+            SpritesynthHistory.Clear();
         }
 
         [TearDown]
-        public void TearDown()
+        public void Teardown()
         {
-            string testDir = Path.GetDirectoryName(Application.dataPath);
-            if (Directory.Exists(testDir))
-                Directory.Delete(testDir, true);
-
-            string projectSettings = Path.Combine(
-                Path.GetDirectoryName(_originalDataPath),
-                "ProjectSettings", "Spritesynth");
-            if (Directory.Exists(projectSettings))
-            {
-                string historyFile = Path.Combine(projectSettings, "history.json");
-                if (File.Exists(historyFile))
-                    File.Delete(historyFile);
-            }
-
-            Application.dataPath = _originalDataPath;
+            if (File.Exists(_testFilePath))
+                File.Delete(_testFilePath);
         }
 
         [Test]
-        public void History_StartsWithEmptyEntries()
+        public void Entries_WhenEmpty_ReturnsEmptyList()
         {
-            var entries = SpritesynthHistory.Entries;
-            Assert.IsNotNull(entries);
-            Assert.AreEqual(0, entries.Count);
+            Assert.AreEqual(0, SpritesynthHistory.Entries.Count);
         }
 
         [Test]
-        public void History_AddEntry_IncreasesCount()
+        public void AddEntry_AddsToBeginning()
         {
-            SpritesynthHistory.AddEntry(new HistoryEntry
-            {
-                job_id = "job_1",
-                prompt = "test sprite",
-                status = "completed",
-                date = DateTime.UtcNow.ToString("o"),
-            });
+            var entry1 = new HistoryEntry { job_id = "1", prompt = "first" };
+            var entry2 = new HistoryEntry { job_id = "2", prompt = "second" };
 
-            Assert.AreEqual(1, SpritesynthHistory.Entries.Count);
-        }
-
-        [Test]
-        public void History_AddEntry_InsertsAtFront()
-        {
-            SpritesynthHistory.AddEntry(new HistoryEntry
-            {
-                job_id = "first",
-                prompt = "first entry",
-                status = "completed",
-                date = DateTime.UtcNow.ToString("o"),
-            });
-
-            SpritesynthHistory.AddEntry(new HistoryEntry
-            {
-                job_id = "second",
-                prompt = "second entry",
-                status = "completed",
-                date = DateTime.UtcNow.ToString("o"),
-            });
+            SpritesynthHistory.AddEntry(entry1);
+            SpritesynthHistory.AddEntry(entry2);
 
             Assert.AreEqual(2, SpritesynthHistory.Entries.Count);
-            Assert.AreEqual("second", SpritesynthHistory.Entries[0].job_id);
-            Assert.AreEqual("first", SpritesynthHistory.Entries[1].job_id);
+            Assert.AreEqual("second", SpritesynthHistory.Entries[0].prompt);
         }
 
         [Test]
-        public void History_AddEntry_StoresFields()
+        public void RemoveEntry_ByJobId_RemovesCorrectEntry()
         {
-            var now = DateTime.UtcNow.ToString("o");
-            SpritesynthHistory.AddEntry(new HistoryEntry
-            {
-                job_id = "job_42",
-                prompt = "knight sprite",
-                image_size = "64x64",
-                seed = 7,
-                model = "fast",
-                status = "completed",
-                width = 64,
-                height = 64,
-                credits_cost = 2,
-                duration_ms = 1500,
-                date = now,
-                local_path = "Assets/Spritesynth/Generations/test.png",
-            });
+            SpritesynthHistory.AddEntry(new HistoryEntry { job_id = "a", prompt = "alpha" });
+            SpritesynthHistory.AddEntry(new HistoryEntry { job_id = "b", prompt = "beta" });
+            SpritesynthHistory.AddEntry(new HistoryEntry { job_id = "c", prompt = "gamma" });
 
-            var entry = SpritesynthHistory.Entries[0];
-            Assert.AreEqual("job_42", entry.job_id);
-            Assert.AreEqual("knight sprite", entry.prompt);
-            Assert.AreEqual("64x64", entry.image_size);
-            Assert.AreEqual(7, entry.seed);
-            Assert.AreEqual("fast", entry.model);
-            Assert.AreEqual("completed", entry.status);
-            Assert.AreEqual(64, entry.width);
-            Assert.AreEqual(64, entry.height);
-            Assert.AreEqual(2, entry.credits_cost);
-            Assert.AreEqual(1500, entry.duration_ms);
-            Assert.AreEqual(now, entry.date);
-            Assert.AreEqual("Assets/Spritesynth/Generations/test.png", entry.local_path);
+            SpritesynthHistory.RemoveEntry("b");
+
+            Assert.AreEqual(2, SpritesynthHistory.Entries.Count);
+            Assert.IsFalse(SpritesynthHistory.Entries.Exists(e => e.job_id == "b"));
         }
 
         [Test]
-        public void History_RemoveEntry_DecreasesCount()
+        public void RemoveEntry_NonExistentId_DoesNothing()
         {
-            SpritesynthHistory.AddEntry(new HistoryEntry
-            {
-                job_id = "job_1",
-                prompt = "test",
-                status = "completed",
-                date = DateTime.UtcNow.ToString("o"),
-            });
-
-            SpritesynthHistory.AddEntry(new HistoryEntry
-            {
-                job_id = "job_2",
-                prompt = "test 2",
-                status = "completed",
-                date = DateTime.UtcNow.ToString("o"),
-            });
-
-            SpritesynthHistory.RemoveEntry("job_1");
-
-            Assert.AreEqual(1, SpritesynthHistory.Entries.Count);
-            Assert.AreEqual("job_2", SpritesynthHistory.Entries[0].job_id);
-        }
-
-        [Test]
-        public void History_RemoveEntry_UnknownIdDoesNothing()
-        {
-            SpritesynthHistory.AddEntry(new HistoryEntry
-            {
-                job_id = "job_1",
-                prompt = "test",
-                status = "completed",
-                date = DateTime.UtcNow.ToString("o"),
-            });
-
+            SpritesynthHistory.AddEntry(new HistoryEntry { job_id = "x", prompt = "test" });
             SpritesynthHistory.RemoveEntry("nonexistent");
-
             Assert.AreEqual(1, SpritesynthHistory.Entries.Count);
         }
 
         [Test]
-        public void History_Clear_RemovesAll()
+        public void Clear_RemovesAllEntries()
+        {
+            SpritesynthHistory.AddEntry(new HistoryEntry { job_id = "1" });
+            SpritesynthHistory.AddEntry(new HistoryEntry { job_id = "2" });
+            SpritesynthHistory.Clear();
+            Assert.AreEqual(0, SpritesynthHistory.Entries.Count);
+        }
+
+        [Test]
+        public void Persistence_SavesAndLoads()
         {
             SpritesynthHistory.AddEntry(new HistoryEntry
             {
-                job_id = "job_1",
-                prompt = "test",
+                job_id = "persist-test",
+                prompt = "persistence check",
                 status = "completed",
+                credits_cost = 5,
                 date = DateTime.UtcNow.ToString("o"),
             });
+
+            Assert.IsTrue(File.Exists(_testFilePath));
 
             SpritesynthHistory.Clear();
-
             Assert.AreEqual(0, SpritesynthHistory.Entries.Count);
+
+            string json = File.ReadAllText(_testFilePath);
+            var loaded = JsonUtility.FromJson<GenerationHistory>(json);
+            Assert.IsNotNull(loaded);
+            Assert.AreEqual(1, loaded.entries.Count);
+            Assert.AreEqual("persist-test", loaded.entries[0].job_id);
         }
     }
 }

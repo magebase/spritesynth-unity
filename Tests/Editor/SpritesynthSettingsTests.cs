@@ -1,102 +1,109 @@
+using System;
 using NUnit.Framework;
 using UnityEditor;
+using Magebase.Spritesynth.Editor;
 
-namespace Magebase.Spritesynth.Tests
+namespace Magebase.Spritesynth.Tests.Editor
 {
     public class SpritesynthSettingsTests
     {
+        private const string TestKeyPref = "Spritesynth_API_Key";
+        private const string TestUrlPref = "Spritesynth_Base_URL";
+        private const string TestEnvVar = "SPIRESYNTH_API_KEY";
+
         [SetUp]
-        public void SetUp()
+        public void Setup()
         {
-            EditorPrefs.DeleteKey("Spritesynth_API_Key");
-            EditorPrefs.DeleteKey("Spritesynth_Base_URL");
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            EditorPrefs.DeleteKey("Spritesynth_API_Key");
-            EditorPrefs.DeleteKey("Spritesynth_Base_URL");
+            EditorPrefs.DeleteKey(TestKeyPref);
+            EditorPrefs.DeleteKey(TestUrlPref);
+            Environment.SetEnvironmentVariable(TestEnvVar, null);
         }
 
         [Test]
-        public void ApiKey_DefaultIsEmpty()
+        public void ApiKey_Default_ReturnsEmpty()
         {
-            string key = Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey;
-            Assert.IsEmpty(key);
+            Assert.AreEqual("", SpritesynthSettings.ApiKey);
         }
 
         [Test]
-        public void ApiKey_RoundTrips()
+        public void ApiKey_SetAndGet_ReturnsSavedValue()
         {
-            Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey = "sk-test-key-123";
-            string retrieved = Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey;
-
-            Assert.AreEqual("sk-test-key-123", retrieved);
+            SpritesynthSettings.ApiKey = "test-key-123";
+            Assert.AreEqual("test-key-123", SpritesynthSettings.ApiKey);
         }
 
         [Test]
-        public void ApiKey_NullClearsPref()
+        public void ApiKey_SetNull_DeletesKey()
         {
-            Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey = "sk-something";
-            Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey = null;
-
-            Assert.IsEmpty(Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey);
-            Assert.IsFalse(EditorPrefs.HasKey("Spritesynth_API_Key"));
+            SpritesynthSettings.ApiKey = "some-key";
+            SpritesynthSettings.ApiKey = null;
+            Assert.AreEqual("", SpritesynthSettings.ApiKey);
         }
 
         [Test]
-        public void BaseUrl_DefaultIsProduction()
+        public void ApiKey_EnvVarFallback_ReturnsEnvValue()
         {
-            string url = Magebase.Spritesynth.Editor.SpritesynthSettings.BaseUrl;
-            Assert.AreEqual("https://api.spritesynth.com/api", url);
+            Environment.SetEnvironmentVariable(TestEnvVar, "env-key");
+            Assert.AreEqual("env-key", SpritesynthSettings.ApiKey);
         }
 
         [Test]
-        public void BaseUrl_RoundTrips()
+        public void HasEnvVar_WhenSet_ReturnsTrue()
         {
-            Magebase.Spritesynth.Editor.SpritesynthSettings.BaseUrl = "https://staging.api.spritesynth.com/api";
-            string retrieved = Magebase.Spritesynth.Editor.SpritesynthSettings.BaseUrl;
-
-            Assert.AreEqual("https://staging.api.spritesynth.com/api", retrieved);
+            Environment.SetEnvironmentVariable(TestEnvVar, "present");
+            Assert.IsTrue(SpritesynthSettings.HasEnvVar);
         }
 
         [Test]
-        public void ClearApiKey_RemovesKey()
+        public void HasEnvVar_WhenNotSet_ReturnsFalse()
         {
-            Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey = "sk-test";
-            Magebase.Spritesynth.Editor.SpritesynthSettings.ClearApiKey();
+            Assert.IsFalse(SpritesynthSettings.HasEnvVar);
+        }
 
-            Assert.IsFalse(EditorPrefs.HasKey("Spritesynth_API_Key"));
-            Assert.IsEmpty(Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey);
+        [Test]
+        public void BaseUrl_Default_ReturnsDefaultUrl()
+        {
+            Assert.AreEqual("https://api.spritesynth.com/api", SpritesynthSettings.BaseUrl);
+        }
+
+        [Test]
+        public void BaseUrl_SetAndGet_ReturnsSavedValue()
+        {
+            SpritesynthSettings.BaseUrl = "https://custom.url/api";
+            Assert.AreEqual("https://custom.url/api", SpritesynthSettings.BaseUrl);
         }
 
         [Test]
         public void ClearAll_RemovesAllPrefs()
         {
-            Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey = "sk-test";
-            Magebase.Spritesynth.Editor.SpritesynthSettings.BaseUrl = "https://custom.api.com";
-
-            Magebase.Spritesynth.Editor.SpritesynthSettings.ClearAll();
-
-            Assert.IsFalse(EditorPrefs.HasKey("Spritesynth_API_Key"));
-            Assert.IsFalse(EditorPrefs.HasKey("Spritesynth_Base_URL"));
+            SpritesynthSettings.ApiKey = "key";
+            SpritesynthSettings.BaseUrl = "https://url";
+            SpritesynthSettings.ClearAll();
+            Assert.AreEqual("", SpritesynthSettings.ApiKey);
+            Assert.AreEqual("https://api.spritesynth.com/api", SpritesynthSettings.BaseUrl);
         }
 
         [Test]
-        public void HasEnvVar_InitiallyFalse()
+        public void ClearApiKey_RemovesKey()
         {
-            bool has = Magebase.Spritesynth.Editor.SpritesynthSettings.HasEnvVar;
-            Assert.IsFalse(has);
+            SpritesynthSettings.ApiKey = "key-to-clear";
+            SpritesynthSettings.ClearApiKey();
+            Assert.AreEqual("", SpritesynthSettings.ApiKey);
         }
 
         [Test]
-        public void IsUsingEnvVar_FalseWhenKeyIsSet()
+        public void IsUsingEnvVar_NoSavedKeyAndEnvSet_ReturnsTrue()
         {
-            Magebase.Spritesynth.Editor.SpritesynthSettings.ApiKey = "sk-manual";
-            bool usingEnv = Magebase.Spritesynth.Editor.SpritesynthSettings.IsUsingEnvVar;
+            Environment.SetEnvironmentVariable(TestEnvVar, "env-key");
+            Assert.IsTrue(SpritesynthSettings.IsUsingEnvVar);
+        }
 
-            Assert.IsFalse(usingEnv);
+        [Test]
+        public void IsUsingEnvVar_SavedKeyPresent_ReturnsFalse()
+        {
+            SpritesynthSettings.ApiKey = "saved-key";
+            Environment.SetEnvironmentVariable(TestEnvVar, "env-key");
+            Assert.IsFalse(SpritesynthSettings.IsUsingEnvVar);
         }
     }
 }

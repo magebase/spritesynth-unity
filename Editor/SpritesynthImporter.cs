@@ -10,7 +10,7 @@ namespace Magebase.Spritesynth.Editor
         private const string RootFolder = "Assets/Spritesynth";
         private const string GenerationsFolder = "Assets/Spritesynth/Generations";
 
-        public static string Import(byte[] pngData, string prompt, GenerationResult result)
+        public static string Import(byte[] pngData, string prompt, GenerationResponse result)
         {
             if (pngData == null || pngData.Length == 0)
                 throw new ArgumentException("PNG data is empty", nameof(pngData));
@@ -49,6 +49,7 @@ namespace Magebase.Spritesynth.Editor
                 importer.SaveAndReimport();
             }
 
+            AssetInfo assetInfo = result.asset ?? new AssetInfo();
             UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
             if (asset != null)
             {
@@ -58,7 +59,7 @@ namespace Magebase.Spritesynth.Editor
 
             EditorUtility.DisplayDialog(
                 "SpriteSynth",
-                $"Generation complete!\n\nPrompt: {prompt}\nSize: {result.asset.width}x{result.asset.height}\nCredits: {result.credits_cost}\nTime: {result.duration_ms}ms\n\nImported to:\n{assetPath}",
+                $"Generation complete!\n\nPrompt: {prompt}\nSize: {assetInfo.width}x{assetInfo.height}\nCredits: {result.credits_cost}\nTime: {result.duration_ms}ms\n\nImported to:\n{assetPath}",
                 "OK"
             );
 
